@@ -2,7 +2,7 @@
 
 SYSEN 5460 – Midterm Exercise: DL Challenge
 
-Author: **Selena Miao**
+Author: **Yueqing Miao-Selena**
 Cornell University – Systems Engineering
 
 ---
