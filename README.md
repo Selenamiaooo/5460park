@@ -1,136 +1,172 @@
-# Park Quality Tracker
+# Park Quality Tracker⛲️
 
-**SYSEN 5460 – Data Science for Socio-Technical Systems Midterm Project**
+SYSEN 5460 – Midterm Exercise: DL Challenge
 
-## Overview
-
-This project implements a lightweight data collection and monitoring tool for park maintenance issues. The application allows park staff to submit reports about quality or safety issues and view simple database summaries in near real time.
-
-The system is built using **R Shiny** as the user interface and **Supabase PostgreSQL** as the cloud database backend. Reports submitted through the interface are written directly to the database and the dashboard queries the same database to display aggregated statistics and recent reports.
-
-The goal of the project is to demonstrate how a small data application can support operational decision-making for public services such as park maintenance.
+Author: **Selena Miao**
+Cornell University – Systems Engineering
 
 ---
 
-## Use Case
+# Project Overview
 
-Park management teams often need a quick way to log issues observed in the field, such as safety concerns, infrastructure damage, or cleanliness problems.
+This project implements a lightweight reporting and monitoring tool for park quality issues. The goal is to demonstrate how a simple data application can help public service staff collect information in the field and view database summaries in near real time.
 
-This tool allows staff to:
+The application is built using **R Shiny** for the interface and **Supabase PostgreSQL** as the cloud database backend.
 
-Submit issue reports from different park locations
-Track the frequency of issues by park
-Track the frequency of issues by issue type
-View the most recent reports submitted to the system
+Users can submit issue reports through a form, and the app writes the information directly to the database. The dashboard then queries the same database to display aggregated statistics and recent reports.
 
-Although the data used in this project is synthetic, the structure reflects how a real operational tracking tool could work.
+The system is intentionally minimal but functional, showing how a small operational tool could support park maintenance monitoring.
 
 ---
 
-## System Architecture
+# Use Case
 
-The application has three main components.
+Park staff often observe issues such as:
 
-### 1. User Interface (R Shiny)
+* trash overflow
+* flooding on trails
+* playground damage
+* restroom cleanliness issues
+* visitor injuries
 
-The Shiny app provides a simple form for submitting issue reports. Users can select a park, choose the type of issue, assign a severity level, and provide optional notes.
+This application provides a simple interface for recording these events and tracking trends.
 
-### 2. Database (Supabase PostgreSQL)
+The app allows staff to:
 
-All submitted reports are stored in a cloud PostgreSQL database hosted on Supabase. The application connects to the database using the `DBI` and `RPostgres` packages.
+submit issue reports
+track reports by park
+track reports by issue type
+view recent submissions
 
-### 3. Dashboard Queries
-
-The dashboard dynamically queries the database to display:
-
-Counts of reports by park
-Counts of reports by issue type
-The ten most recent reports submitted
-
-These queries update when new data is submitted.
+Although the data used in this project is synthetic, the structure reflects a realistic operational reporting workflow.
 
 ---
 
-## Application Features
+# System Architecture
 
-The application includes the following functionality.
+The system includes three main components:
 
-### Submit Issue Reports
+1. Shiny application interface
+2. Supabase PostgreSQL database
+3. SQL queries that generate dashboard summaries
 
-Users can enter a new report through a simple form including:
+The diagram below illustrates the data flow.
 
-Park name
-Issue type
-Severity level (1–5)
-Reporter name
-Optional notes
+```mermaid
+flowchart LR
 
-When the **Submit Report** button is clicked, the app inserts the data into the PostgreSQL database.
+A[Park Staff User] --> B[Shiny App Interface]
 
-### View Summary Statistics
+B --> C[Submit Issue Form]
+
+C --> D[SQL INSERT Query]
+
+D --> E[(Supabase PostgreSQL Database)]
+
+E --> F[SQL Aggregation Queries]
+
+F --> G[Dashboard Tables]
+
+G --> H[Reports by Park]
+G --> I[Reports by Issue Type]
+G --> J[Recent Reports]
+```
+
+---
+
+# Database Schema
+
+The application uses a single main table.
+
+## Table: quality_reports
+
+| Column      | Type      | Description          |
+| ----------- | --------- | -------------------- |
+| id          | BIGSERIAL | Unique identifier    |
+| park_name   | TEXT      | Name of the park     |
+| issue_type  | TEXT      | Category of issue    |
+| severity    | INTEGER   | Severity level (1–5) |
+| notes       | TEXT      | Optional description |
+| reported_by | TEXT      | Reporter name        |
+| reported_at | TIMESTAMP | Submission time      |
+
+---
+
+# Data Flow Diagram
+
+This diagram shows how the application interacts with the database.
+
+```mermaid
+sequenceDiagram
+
+participant User
+participant Shiny
+participant Database
+
+User->>Shiny: Submit issue report
+Shiny->>Database: INSERT new record
+Database-->>Shiny: Confirm write
+
+Shiny->>Database: SELECT aggregated statistics
+Database-->>Shiny: Return query results
+
+Shiny->>User: Display dashboard tables
+```
+
+---
+
+# Key Features
+
+## 1. Submit Issue Reports
+
+The Shiny interface includes a form where users can enter:
+
+park name
+issue type
+severity level
+reporter name
+optional notes
+
+When the **Submit Report** button is clicked, the app inserts the data into the database.
+
+---
+
+## 2. Database Aggregation
 
 The dashboard automatically displays summary statistics including:
 
-Number of reports by park
-Number of reports by issue type
+number of reports by park
+number of reports by issue type
 
-These statistics are generated using SQL aggregation queries.
+These summaries are generated using SQL aggregation queries.
 
-### View Recent Reports
+Example query:
 
-The app displays the ten most recent submissions from the database, allowing users to quickly review current activity.
+```sql
+SELECT park_name, COUNT(*) AS reports
+FROM public.quality_reports
+GROUP BY park_name
+ORDER BY reports DESC;
+```
 
 ---
 
-## Database Schema
+## 3. Recent Reports
 
-The application uses a single table.
+The dashboard displays the ten most recent submissions using a query similar to:
 
-### Table: `quality_reports`
-
-| Column      | Type      | Description                       |
-| ----------- | --------- | --------------------------------- |
-| id          | BIGSERIAL | Unique identifier for each report |
-| park_name   | TEXT      | Name of the park                  |
-| issue_type  | TEXT      | Category of issue                 |
-| severity    | INTEGER   | Issue severity (1–5)              |
-| notes       | TEXT      | Optional description of the issue |
-| reported_by | TEXT      | Name or role of the reporter      |
-| reported_at | TIMESTAMP | Time the report was submitted     |
+```sql
+SELECT park_name, issue_type, severity, reported_by, notes, reported_at
+FROM public.quality_reports
+ORDER BY reported_at DESC
+LIMIT 10;
+```
 
 ---
 
-## Required Environment Variables
+# Running the Application
 
-Database credentials are stored in environment variables rather than in the code to prevent exposing sensitive information.
-
-The following variables must be defined in `.Renviron`:
-
-```
-SUPABASE_HOST
-SUPABASE_PORT
-SUPABASE_DB
-SUPABASE_USER
-SUPABASE_PASSWORD
-```
-
-Example configuration:
-
-```
-SUPABASE_HOST=aws-0-us-west-2.pooler.supabase.com
-SUPABASE_PORT=5432
-SUPABASE_DB=postgres
-SUPABASE_USER=postgres.projectref
-SUPABASE_PASSWORD=your_database_password
-```
-
-After editing `.Renviron`, restart the R session for the variables to take effect.
-
----
-
-## Installation
-
-Install the required R packages:
+## Step 1: Install Required Packages
 
 ```r
 install.packages(c(
@@ -143,72 +179,128 @@ install.packages(c(
 
 ---
 
-## Running the Application
+## Step 2: Configure Database Credentials
 
-After setting environment variables and installing dependencies, run the application with:
+Database credentials are **not stored in the source code**.
+
+Instead, they must be stored as environment variables in a `.Renviron` file.
+
+Example configuration:
+
+```
+SUPABASE_HOST=your_pooler_host
+SUPABASE_PORT=5432
+SUPABASE_DB=postgres
+SUPABASE_USER=your_database_user
+SUPABASE_PASSWORD=your_database_password
+```
+
+Example values for Supabase (these will vary depending on the project):
+
+```
+SUPABASE_HOST=aws-0-us-west-2.pooler.supabase.com
+SUPABASE_PORT=5432
+SUPABASE_DB=postgres
+SUPABASE_USER=postgres.projectref
+SUPABASE_PASSWORD=your_database_password
+```
+
+After editing `.Renviron`, restart the R session.
+
+---
+
+## Step 3: Run the Application
+
+Once environment variables are configured, run the Shiny app:
 
 ```r
 shiny::runApp()
 ```
 
-The Shiny interface will open in the browser.
+The application will launch in a browser window.
 
 ---
 
-## Project Structure
+# Project Structure
 
 ```
 project-folder
-│
-├── app.R
-├── README.md
-├── codebook.md
-└── .gitignore
+
+app.R
+README.md
+codebook.md
+.gitignore
 ```
 
-### Files
+### Files📃
 
 **app.R**
-Main Shiny application containing the UI and server logic.
+
+Main Shiny application including UI and server logic.
 
 **README.md**
+
 Project description and instructions.
 
 **codebook.md**
-Documentation describing the database schema and variables.
+
+Documentation of database schema.
 
 **.gitignore**
-Ensures sensitive files such as `.Renviron` are not uploaded to GitHub.
+
+Prevents sensitive files such as `.Renviron` from being pushed to GitHub.
 
 ---
 
-## Security Notes
+# Security Considerations
 
 Database credentials are never stored directly in the code.
-The `.Renviron` file containing credentials is excluded from version control using `.gitignore`.
 
-This allows other users to run the application by supplying their own database credentials.
+Instead, the application reads credentials using environment variables:
+
+```r
+Sys.getenv("SUPABASE_HOST")
+Sys.getenv("SUPABASE_USER")
+Sys.getenv("SUPABASE_PASSWORD")
+```
+
+The `.Renviron` file containing secrets is excluded from version control using `.gitignore`.
+
+This ensures that sensitive credentials are not exposed in the repository.
 
 ---
 
-## Possible Extensions
+# Reproducibility
+
+The project is designed so that another user can run the application by:
+
+cloning the repository
+creating their own `.Renviron` file
+providing Supabase database credentials
+running `shiny::runApp()`
+
+This approach ensures that the project is reproducible without exposing sensitive information.
+
+---
+
+# Possible Extensions
 
 Future improvements could include:
 
-Adding interactive visualizations (e.g., charts using `plotly`)
-Mapping park locations using geographic coordinates
-Allowing filtering by date range or severity level
-Adding authentication for different staff roles
+interactive charts using Plotly
+mapping park locations using geospatial data
+filtering reports by date or severity
+user authentication for park staff
+automated alerts for high severity reports
 
-These features would help expand the system into a more complete park operations dashboard.
+These additions would transform the prototype into a more complete operational dashboard.
 
 ---
 
-## Author
+# Author✍️
 
 Selena Miao
 Cornell University
 SYSEN 5460 – Data Science for Socio-Technical Systems
 
 ---
-
